@@ -761,36 +761,6 @@
      sudo /etc/init.d/nginx restart
 
 
-
-
-# Certication Sample Test Failures
-* read
-    * [1](http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-creating-snapshot.html)
-    * [2](https://aws.amazon.com/premiumsupport/knowledge-center/snapshot-ebs-raid-array/)
-* SWF
-* In RDS when using multiple availability zones, can you use the secondary
-  database as an independent read node?
-* IAM access key and secrete access key
-
-## Solved
-* What is Passenger and what is websphere?
-    * Pusion Passenger, web and application server for ruby, python, nodejs etc
-    * IBM websphere, middlware for hosting Java application servers
-    * [comparison](https://en.wikipedia.org/wiki/Comparison_of_application_servers)
-* Elastic Network Interface (ENI)
-    * A virtual network interface that you can attach to an instance inside a
-      VPC
-    * Only available for instances in a VPC
-* OLTP
-    * online transaction processing
-    * smaller/faster queries
-    * likely to serve as a single source of truth
-* OLAP
-    * online analytic process
-    * for data mining
-    * larger and slower query
-
-
 # Links
 * [complete guide](https://www.airpair.com/aws/posts/building-a-scalable-web-app-on-amazon-web-services-p1)
     * A Comprehensive Guide to Building a Scalable Web App on Amazon Web Services - Part 1 
