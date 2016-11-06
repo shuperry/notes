@@ -1,4 +1,17 @@
+* [加速器](https://x2u52vfr.mirror.aliyuncs.com)
+
+# History
+* Developed by dotCloud, open sourced by March, 2013
+* Started with LXC + union file system
+* dotCloud later changed its name to Docker Inc.
+* Evovled from a tool to a complex platform of technologies.
+
+
 # Concept and Philosophy
+* Build, Ship, Run
+    * build: docker image
+    * ship: docker registry
+    * run: container
 * registry, daemon, client, images, container
 * main registry is docker hub
 * container are instances of images
@@ -34,7 +47,7 @@
 * `docker run hello-world`
     * it'll pull `hello-world` from registry and run it
 
-# dockerfile
+# Dockerfile
 * recipe for building a docker image
     * with a special name `Dockerfile`
 * commands:
@@ -42,20 +55,31 @@
     * `RUN`: exe command at **build time**
     * `ENTRYPOINT`: exe command at container boot time
     * `EXPOSE`: expose port to external world
-    * `ADD`: add file to image, a superset for `COPY`. allows remote file
+    * `ADD`: add file to image, a superset for `COPY`.
+      supports remote file
+      supports auto extraction of tarball (local file only)
     * `WORKDIR`: change working dir in container
-    * `VOLUME`: mount from host (used together with `-v` flag when running image)
-    * `USER`: specify user id for running commands
-    * `CMD`: command for running your application
+    * `VOLUME`: mount from host (same effect as `-v` flag with `docker run`)
+    * `USER`: specify user id or user name for running commands
+    * `CMD`: command for running your application,
+      or arguments to the command when `ENTRYPOINT` exists
+      when multiple `CMD` exists, only the last one counts
     * `COPY`: copy local file into container image
+        * can be used to copy multiple files
+        * when file name has space, use an array
+        * automatically create directory 10.50.81.126 10.50.81.126 10.50.81.126
 * to build, `docker build -t username/appname .`
     * `docker.io build -t wenliang/appname - < dockerfile`
     * has to be run as root on Linux
 * every command in the file creates a new filesystem layer
-* use `.dockerignore` to ignore files
 * `USER` can be specified multiple times in a single file for different user
+* When executing `docker build`, a context is sent to the engine at the same
+  time
+    * can be a path or a URL
+    * use `.dockerignore` to exclude file/path to be included in the context
 
-# docker commands
+
+# Docker commands
 * `docker pull`
     * download image from registry
 * `docker push`
@@ -83,6 +107,7 @@
     * remove container
     * `docker rm $(docker ps -q -a)`
     * `docker rm $(docker ps -a -q -f status=exited)`
+    * `-v` also removes volume that's not used by other containers
 * `docker rmi` // remove image, can only be done is the container is removed
 * `docker commit c3f279d17e0a  svendowideit/testimage:version3`
     * commits changes made to container into image
@@ -97,33 +122,39 @@
     * copy file out of the container
     * also works the other direction
 * `docker export`
-    * tarball container's file system
-* `docker save from_image to_image`
+    * tarball **container's** file system
+    * pairs with `import`
+* `docker save from_image image.tar`
     * save a image to a tarball
+    * also saves metadata like `CMD`, name, tag etc
+* `docker load -i image.tar`
+    * load image from tarball. by default it reads from STDIN
+    * preserver images name etc
 * `docker diff`
     * show changed file in container's FS
 * `docker tag ubuntu-git:latest ubuntu-git:1.9`
-    * create a new tag
+* `docker tag aae0104e1169 arungupta/hello-java:latest`
+    * create a new tag into the registry
 * `docker import`
     * create image from a tarball
+    * this is only used for initial image creation
 * `docker logs`
     * retrieve logs from a running/stopped container
 * `docker inspect`
     * show internal stuff for container/image
 * `docker port`
     * show exposed port for a container
+* `docker history`
+    * show full set of layers
+* `docker stats`
 
 
-# advanced tool
-* `docker-machine` makes it easy to build host locally or in the cloud
-* `docker-compose` is a tool for running multi-container applications with docker
-    * [realpython](https://realpython.com/blog/python/dockerizing-flask-with-compose-and-machine-from-localhost-to-the-cloud/)
-* `docker-swarm` for clustering
-
-
-# registry & repository
+# Registry & repository
+* A place for storing, sharing docker images
 * repository is a collection of images
 * registery is a host that holds the collection
+* [docker hub](https://hub.docker.com)
+    * default registry
 * `docker login`
 * `docker search`
 * `docker pull`
@@ -133,9 +164,15 @@
   tags like `1.0, 2.0`, etc. And this implies version numbers. But tags are
   **NOT** version numbers. That's why `latest` doesn't follow the **latest**
   pushed tag
+* `latest` is used when no tag name is supplied, e.g. when building and pulling
+## namespace
+1. `username/imgname` belongs to a user, on the docker hub
+2. `offical_image` root name space, normally official images
+3. `<ip/hostname>/user/imagename` third party registry, like quay.io, or private
+   ones
 
 
-# layers
+# Layers
 * versioned file system for docker container
 * like git commit
 * Unionfs makes sure of the layered file system
@@ -150,7 +187,7 @@
   layer is created with `docker inspect`
     * similarly with user generated images
 * all layers in images are read only. when a container is in action, there is
-  writable layer created
+  writable layer created with **copy-on-write**
 ## UnionFS Practice
 * `mount -t unionfs -o dirs=/Foo:/Bar none /mnt/ufs`
     * merge directory `Foo` and `Bar` into one view
@@ -162,7 +199,7 @@
 * `none    /path/to/files     aufs    dirs=/path/to/files1:/path/to/files2 0 0`
 
 
-# docker volume
+# Docker volume
 * by default, data in containers are not persisted
 * volume can:
     1. keep data around
@@ -173,9 +210,11 @@
     * also persists stuff
 * `docker create -v /data --name data_container ubuntu`
     * creates a volume container
+    * in `Created` state so won't show with `docker ps`
 * `docker run -t -i --volumes-from data_container ubuntu /bin/bash`
     * Use it
     * `/data` will appear in the container
+    * `volumes-from` can be used to mount other image with `VOLUME` declared
 * `docker run -d --name bmweb -v ~/htdocs:/usr/local/apache2/htdocs...`
     * serve local html directory through apache
     * `-v ~/htdocs:mountpoint:ro` will mount the volume read only
@@ -189,8 +228,7 @@
 * also true for volume only container if it's mounted multiple times
 
 
-# remote API
-* ...
+# Remote API
 
 
 # Orchestration
@@ -230,6 +268,10 @@
 * Replication controller
     * manages lifecycle of pods
 ## docker 1.12
+* network
+* services
+    * `docker run --publish-services`
+    * replaces `--links`
 * stack
     * a collection of services
     * defined in YAML file
@@ -255,6 +297,11 @@
 
 # docker-compose
 * **Compose is great for development, testing, and staging environments, **
+* The unit of management is **service**, which is one or more docker container
+  running the same image
+    * start
+    * stop
+    * scale
 * Using YAML to define a cluster
     * services
     * networks
@@ -264,6 +311,7 @@
 * `docker-compose up -d`
     * builds and start the cluster
     * `-d` for detach mode. releases the shell
+    * only builds images when it's not there
 * `docker-compose stop`
 * `docker-compose rm -v`
     * cleanup
@@ -296,6 +344,8 @@
 * `command`
     * set default command
     * `"true"` when nothing to be done
+* `extends`
+    * inclusion of other YML file.
 ## Networking
 * by default, `docker-compose` creates a single network
 * serice name can be used to resolve the container's IP
@@ -383,6 +433,9 @@
 
 
 # Networking
+* docker networking is based on the assumption that **hosts** can talk to each
+  other
+* networking goes hand-in-hand with service discovery in docker
 * in terms of networking, there are 4 types of hosts
     * closed container
     * bridge container
@@ -401,6 +454,12 @@
 * network
     * introduced in 1.9
     * container can communicate with each other with an overlay network cross machine
+## Bridged Network
+* `172.x.0.0/16` networks with gateway at `172.x.0.1`
+* default docker network on a given host, name is `docker0`
+* `docker network create -d bridge mybridge` actually creates a new bridge
+* within the same bridge, container can talk to each other, between bridges it's
+  firewalled by default
 ## CLI
 * `docker network create foobar`
     * create a network
@@ -431,8 +490,30 @@
 * `docker run --net host ip addr`
     * creates open container
 ## Overlay network
+* basically an ethernet in UDP tunnel
+    * layer 2 encapsulated in layer 3
 * manages multi-host networking
-* Use VxLAN
+* Use VxLAN, a kernel feature since 3.6
+* VXLAN header encapsulate cross-host traffic with host IP
+* E.g container network is overlayed on 10.0.0.0/24 and hostnetwork is
+  192.168.1.0/24, the actual VXLAN will encapsulate 192.168.1.0/24 address
+  to allow the packet to go through, when reaching desitination, it'll be
+  unpacked to send to correct 10.0.0.0/24 address
+* container management platform will have to provide DNS service for 10.0.0.0/24
+  network
+* `docker network create -d overlay ovnet`
+* [youtube](https://www.youtube.com/watch?v=KM98iBb8BaY)
+* [demystify](http://blog.nigelpoulton.com/demystifying-docker-overlay-networking/)
+    * pretty nice writeup
+## MACVLAN
+* ...
+## CNM (Container Networking Module)
+* backed by Docker
+* plugin network drivers provided by community
+    * contiv
+    * weave
+    * calico
+    * kuryr
 
 
 # Data
@@ -466,6 +547,8 @@
   characteristics of each machine’s hardware, and network locality. Select- ing
   a machine based on these concerns is called scheduling.**
     * From **Docker in Action**
+* **NOTE** docker swarm is not the same as docker engine swarm mode
+    * latter is introduced in docker 1.12 as part of the built-in feature
 
 ## Service
 * auto scaled docker container
@@ -547,6 +630,12 @@
     * `/{id}/stop`
     * `/{id}/export`
     * etc
+## Event API
+* create
+* die
+* kill
+* etc
+* `docker events` starts monitoring
 
 
 # Docker Internal
@@ -565,11 +654,11 @@
 * pid, network, mount, hostname, userid, ipc, filesystem, etc
 * `unshare`
 ## UnionFS
+* implementation includes: aufs, btrfs, devicemapper, overlayfs, etc
 ### copy on write
 * very important for docker's success
-### aufs
-### btrfs
 ## LXC
+* Obsolete
 * Linux container
 * In user space
 * Provides a virtual environment that has its own CPU, memory, etc
@@ -623,12 +712,33 @@
 # Docker Plugins
 
 
+# InfraKit
+* Tool for managing infrastructure like AWS, Azure
+* Opensourced (live) in 2016 LinuxCon Europe
+* Declarative, self-healing, scalable
+
+
 # Platforms
 * On linux, docker runs natively on the host
 * On Mac and Windows, docker runs inside a VM
     * ??? changed in 1.12?
 * zsh integration
     * turn on `docker` plugin in `.zshrc`
+## Mac
+* `$ screen ~/Library/Containers/com.docker.docker/Data/com.docker.driver.amd64-linux/tty`
+    * login into Mac VM
+## Windows
+* Uses Hyper-V for virtualize docker engine and Linux kernel stuff
+## Docker Toolbox
+* Use virtualbox to provision a default machine and run there
+* Docker for Mac is different in that it uses a native hypervisor and run a
+  alpine linux with docker engine
+## Windows Server 2016
+* This is different from Docker for Windows runs windows container
+* Linux container doesn't work (shared kernel)
+* `docker commit` doesn't work
+* DTR (docker trusted registry) doesn't work
+* [windows](http://www.computerweekly.com/feature/A-closer-look-at-Google-Container-Engine)
 
 
 # Competition
@@ -661,6 +771,7 @@
 * this triggered the plugin architecture of docker storage
 * default to `loop-lvm`
 * production enviroment is suggested to use `direct-lvm`
+* use "thin provisioning" or "thinp" feature from the kernel
 ## overlayfs
 * modern union file system
 * in mainline kernel since 3.18
@@ -670,6 +781,7 @@
 * `dockerd --storage-driver=overlay`
 * faster than `aufs` and `devicemapper`
     * less mature
+## graphdriver
 
 
 # CI/CD
@@ -700,9 +812,12 @@
 
 # Logging
 * By default docker logs STDOUT and STDERR
+* The best practice of container is to put all logs into STDIN and STDERR
+* Logs can be aggregated, preferrably with a service running on the host
 * No log rotation
 * `docker logs -f container`
     * Attach to the log stream of the container
+    * `-t` to add timestamp
 * `docker run --log-driver`
     * json-file
     * syslog
@@ -724,6 +839,8 @@
 * Needs to use the Dockr socket API
 
 
+
+
 # TODO
 * overlay network
 * rancher
@@ -739,10 +856,12 @@
 * [harbor](https://github.com/vmware/harbor)
     * enterprise class docker registry
     * added security, identity
+    * REST API at `/api/`: [link](https://github.com/vmware/harbor/blob/master/docs/configure_swagger.md)
 * [shipyard](https://shipyard-project.com)
     * container management system with GUI
 * [cadvisor](https://github.com/google/cadvisor)
     * container monitor tool
+    * a tool that collects, aggregates, and exports metrics about running containers. (codeship)
 * [dubbo](https://github.com/alibaba/dubbo)
     * distributed RPC framework by alibaba
 * [consul]()
@@ -776,6 +895,14 @@
     * an answer with 24 updates with loads of links
 * [rackHD]()
     * hardware provisioning open source software
+* [quay](https://quay.io)
+    * registry Saas
+    * access control
+    * Dockerfile build in the cloud
+* [image layer visualizer](https://imagelayers.io)
+* [docker gc](https://github.com/spotify/docker-gc)
+    * garbage collection of dead images
+    * by Spotify
 
 
 # Links
@@ -821,7 +948,23 @@
 * [中文教程](http://blog.csdn.net/zhikun518/article/details/51114026)
 * [not so short](https://www.jayway.com/2015/03/21/a-not-very-short-introduction-to-docker/)
     * pretty lengthy tutorial of docker
-    * companion PPT is lengthy too
+    * companion [http://www.slideshare.net/andersjanmyr/docker-the-future-of-devops](PPT) is lengthy too
     * a bit dated but still good info
 * [docker orchestration workshop](http://jpetazzo.github.io/orchestration-workshop/?utm_source=twitter&utm_medium=social&utm_term=Jerome+Petazzo%2Corchestration&utm_content=&utm_campaign=Social+Media+Department#1)
     * slides
+* [docker intro](http://pointful.github.io/docker-intro/#/)
+    * short revealjs slides intro
+* [docker registry v2](http://www.slideshare.net/Docker/docker-registry-v2)
+    * slideshare about registry v2
+* [datadog](https://www.datadoghq.com/docker-adoption/)
+    * nice adoption graphs
+    * and list of most popular containers
+* [point of docker](http://www.forbes.com/sites/justinwarren/2016/10/16/the-point-of-docker-is-more-than-containers/2/#501847933dde)
+    * Interesting point from the author: 
+      The value of Docker is in the way it forces your business to change the way it uses technology that has me the most excited.
+* [reference module](https://success.docker.com/Datacenter/Apply/Docker_Reference_Architecture%253A_Designing_Scalable%252C_Portable_Docker_Container_Networks)
+    * CNM
+    * pretty tough read
+* [docker is the mellinim folcon](http://venturebeat.com/2015/04/15/docker-is-the-millennium-falcon/)
+    * very interesting wording
+    * software-defined-everything
